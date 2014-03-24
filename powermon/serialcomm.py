@@ -64,7 +64,7 @@ class SerialComm(object):
             # Nothing was waiting for this - treat it as a notification
             self._event_cmd.append(cmd)
             if self.serial.inWaiting() == 0:
-                print('notification:', self._event_cmd)
+                # print('notification:', self._event_cmd)
                 self.log.debug('notification: %s', self._event_cmd)
                 self.event_cmd_callback(self._event_cmd)
                 self._event_cmd = []
@@ -106,7 +106,7 @@ class SerialComm(object):
                 if self._response_event.wait(timeout):
                     self._response_event = None
                     self._expect_resp_cmd = False
-                    return self._response_cmd
+                    return self._response_cmd[0]
                 else: # Response timed out
                     self._response_event = None
                     self._expect_resp_cmd = False
