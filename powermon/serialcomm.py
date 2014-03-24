@@ -63,11 +63,10 @@ class SerialComm(object):
         else:
             # Nothing was waiting for this - treat it as a notification
             self._event_cmd.append(cmd)
-            if self.serial.inWaiting() == 0:
-                # print('notification:', self._event_cmd)
-                self.log.debug('notification: %s', self._event_cmd)
-                self.event_cmd_callback(self._event_cmd)
-                self._event_cmd = []
+            # print('notification:', self._event_cmd)
+            self.log.debug('notification: %s', self._event_cmd)
+            self.event_cmd_callback(self._event_cmd)
+            self._event_cmd = []
 
     @staticmethod
     def _placeholder_callback(self, *args, **kwargs):

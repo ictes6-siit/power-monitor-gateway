@@ -22,8 +22,5 @@ class PowerMon(SerialComm):
             dispatcher.send(sender=self, signal=cmd.cmdType, cmd=cmd)
         return
 
-    def add_handler(self, cmd_format, callback_func):
-        pass
-
     def send_cmd(self, cmd_format, cmd_container, wait_for_response=True, timeout=5, expected_resp_cmd=None):
         return self.write(cmd_format, cmd_container, wait_for_response, timeout, expected_resp_cmd)
