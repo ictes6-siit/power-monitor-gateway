@@ -12,7 +12,10 @@ class PowerMon(SerialComm):
     def __init__(self, port, baudrate=115200):
         self.baudrate = baudrate
         self.port = port
-        super(PowerMon, self).__init__(port, baudrate, event_cmd_callback_func=self._cmd_handler)
+        super(PowerMon, self).__init__(port, baudrate, event_cmd_callback_func=self._cmd_handler, fatal_error_callback_func=self._fatal_handler)
+
+    def _fatal_handler(self, e):
+        self.log.exception(e)
 
     def _cmd_handler(self, cmd):
         threading.Thread(target=self.__threaded_cmd_handler, kwargs={'cmds': cmd}).start()
