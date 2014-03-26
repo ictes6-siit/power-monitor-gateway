@@ -1,0 +1,133 @@
+__author__ = 'Ratchasak Ranron <ratchasak.ranron@gmail.com>'
+
+from powermon.powermon import *
+from powermon.cmdformat import CmdTx_Calibrate_Request
+from pydispatch import dispatcher
+import datetime
+import json
+import math
+import logging, getopt
+
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
+
+def parseArgs():
+    """ Argument parser for Python 2.7 and above """
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description='Simple script for sending SMS messages')
+    parser.add_argument('-i', '--port', metavar='PORT', help='port to which the STM32 is connected; a number or a device name.')
+    parser.add_argument('-b', '--baud', metavar='BAUDRATE', default=115200, help='set baud rate')
+    parser.add_argument('-l', '--loglevel', metavar='LOGLEVEL', default=None, help='log level')
+    parser.add_argument('-f', '--logfile', metavar='LOGFILE', default=None, help='log file')
+    return parser.parse_args()
+
+def main():
+    args = parseArgs()
+    if args.port == None:
+        sys.stderr.write('Error: No port specified. Please specify the port to which the STM32 is connected using the -i argument.\n')
+        sys.exit(1)
+
+    pm = PowerMon(args.port, args.baud)
+    pm.connect()
+
+    # calibrate
+    dt = datetime.datetime.now()
+    calibrate_container = Container(
+                year = dt.year - 2000,
+                month = dt.month,
+                date = dt.day,
+                hours = dt.hour,
+                minutes = dt.minute,
+                seconds = dt.second,
+                milliseconds = 0
+            )
+    resp = pm.send_cmd(CmdTx_Calibrate_Request, calibrate_container, expected_resp_cmd=CmdRx_Calibrate_Confirm)
+    if resp.status != 0:
+        return
+    # enable burst mode
+    enable_burst_container = Container()
+    resp = pm.send_cmd(CmdTx_EnableBurst_Request, enable_burst_container, expected_resp_cmd=CmdRx_EnableBurst_Confirm)
+    if resp.status != 0:
+        return
+    # register command handler
+    dispatcher.connect(CmdRx_RmsChanged_Report_handler, signal='CmdRx_RmsChanged_Report', sender=dispatcher.Any)
+    while True:
+        pass
+
+def CmdRx_RmsChanged_Report_handler(sender, cmd):
+    dt = datetime.datetime(cmd.year + 2000, cmd.month, cmd.date, cmd.hours, cmd.minutes, cmd.seconds, cmd.milliseconds)
+    url="http://toonja606.appspot.com/task"
+    headers = {"Content-type":"application/json"}
+    values = {
+        'pu1' : cmd.pu1,
+        'pu2' : cmd.pu2,
+        'pu3' : cmd.pu3,
+        'timestamp' : datetime_to_utc_timestamp(dt)
+    }
+    data = json.dumps(values)
+    data = data.encode('utf-8')
+    req = urllib2.Request(url, data, headers)
+    resp = urllib2.urlopen(req)
+    resp_data = resp.read()
+    log = logging.getLogger('tools.powermon')
+    log.info('Posted - %s - pu1 = %d, pu2 = %d, pu3 = %d | Response - %s' % (dt, cmd.pu1, cmd.pu2, cmd.pu3, resp_data))
+
+def datetime_to_utc_timestamp(dt):
+    timestamp = 0
+    version = (sys.version_info[0] * 10) + sys.version_info[1]
+    if version >= 33:
+        timestamp = dt.timestamp()
+    elif version >= 27 :
+        timestamp = (dt - datetime.datetime.fromtimestamp(0)).total_seconds()
+    return int((timestamp * 1000) + ((timestamp - math.floor(timestamp)) * 1000000))
+
+def _setup_log():
+    logger = logging.getLogger('tools.powermon')
+    debug_level = None
+    log_filename = None
+
+    opts, args = getopt.getopt(sys.argv[1:],"i:b:l:f", ["port=", "buad=", "loglevel=", "logfile="])
+    for o, a in opts:
+        if o in ("-l", "--loglevel"):
+            debug_level = a
+        elif o in ("-f", "--logfile"):
+            log_filename = a
+
+    if debug_level is not None:
+        filename = log_filename
+
+        LEVELS = {'debug': logging.DEBUG,
+                  'info': logging.INFO,
+                  'warning': logging.WARNING,
+                  'error': logging.ERROR,
+                  'critical': logging.CRITICAL}
+
+        level = LEVELS.get(debug_level, logging.CRITICAL + 10)
+        logger.setLevel(level = level)
+
+        try:
+            handler = logging.FileHandler(filename)
+        except:
+            handler = logging.StreamHandler()
+
+        fmt = logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s')
+        handler.setFormatter(fmt)
+        logger.addHandler(handler)
+    else:
+        class NullHandler(logging.Handler):
+            def emit(self, record):
+                pass
+
+        # We set the log level to avoid delegation to the
+        # parent log handler (if there is one).
+        # Thanks to Chris Clark to pointing this out.
+        logger.setLevel(logging.CRITICAL + 10)
+
+        logger.addHandler(NullHandler())
+
+if __name__ == '__main__':
+    _setup_log()
+    log = logging.getLogger('tools.powermon')
+    main()

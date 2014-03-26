@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
-
+from setuptools import setup
 import powermon
 
 
@@ -13,7 +12,12 @@ setup(
     author_email='ratchasak.ranron@gmail.com',
     license = 'None',
     url='',
+    scripts=['tools/powermon'],
     packages=['powermon'],
+    install_requires=['PyDispatcher==2.0.3',
+                        'construct==2.5.1',
+                        'pyserial==2.7'
+                    ],
     long_description =
 """
 power-monitor-gateway is the module to communicate with Power Sensor for getting the sensor data or config the sensor.
