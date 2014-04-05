@@ -58,7 +58,7 @@ def main():
 
 def CmdRx_RmsChanged_Report_handler(sender, cmd):
     dt = datetime.datetime(cmd.year + 2000, cmd.month, cmd.date, cmd.hours, cmd.minutes, cmd.seconds, cmd.milliseconds)
-    url="http://toonja606.appspot.com/task"
+    url="http://power-monitor-cloud.appspot.com/rms"
     headers = {"Content-type":"application/json"}
     values = {
         'pu1' : cmd.pu1,
