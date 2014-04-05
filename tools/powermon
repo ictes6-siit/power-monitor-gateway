@@ -57,6 +57,7 @@ def main():
         pass
 
 def CmdRx_RmsChanged_Report_handler(sender, cmd):
+    log = logging.getLogger('tools.powermon')
     dt = datetime.datetime(cmd.year + 2000, cmd.month, cmd.date, cmd.hours, cmd.minutes, cmd.seconds, cmd.milliseconds)
     url="http://power-monitor-cloud.appspot.com/rms"
     headers = {"Content-type":"application/json"}
@@ -68,11 +69,13 @@ def CmdRx_RmsChanged_Report_handler(sender, cmd):
     }
     data = json.dumps(values)
     data = data.encode('utf-8')
-    req = urllib2.Request(url, data, headers)
-    resp = urllib2.urlopen(req)
-    resp_data = resp.read()
-    log = logging.getLogger('tools.powermon')
-    log.info('Posted - %s - pu1 = %d, pu2 = %d, pu3 = %d | Response - %s' % (dt, cmd.pu1, cmd.pu2, cmd.pu3, resp_data))
+    try:
+        req = urllib2.Request(url, data, headers)
+        resp = urllib2.urlopen(req)
+        resp_data = resp.read()
+        log.info('Posted - %s - pu1 = %d, pu2 = %d, pu3 = %d | Response - %s' % (dt, cmd.pu1, cmd.pu2, cmd.pu3, resp_data))
+    except Exception as e:
+        log.error(e)
 
 def datetime_to_utc_timestamp(dt):
     timestamp = 0
@@ -106,7 +109,6 @@ def _setup_log():
 
         level = LEVELS.get(debug_level, logging.CRITICAL + 10)
         logger.setLevel(level = level)
-
         try:
             handler = logging.FileHandler(filename)
         except:
