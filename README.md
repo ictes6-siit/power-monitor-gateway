@@ -11,6 +11,11 @@ Install program
 
     sudo python setup.py install
 
+Set real time
+-------------
+    
+    sudo dpkg-reconfigure tzdata
+
 Using program
 -------------
 
