@@ -133,4 +133,3 @@ if __name__ == '__main__':
     _setup_log()
     log = logging.getLogger('tools.powermon')
     main()
-    
